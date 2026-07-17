@@ -1,589 +1,363 @@
 import React, { useState, useEffect } from 'react';
-import Leaderboards from './pages/Leaderboards';
 
-const divisionRankings = {
-  "Men's Flyweight": {
-    champion: "Joshua Van",
-    contenders: ["Alexandre Pantoja", "Manel Kape", "Tatsuro Taira", "Brandon Royval", "Lone'er Kavanagh", "Asu Almabayev", "Kyoji Horiguchi", "Amir Albazi", "Brandon Moreno", "Kevin Borjas", "Mitch Raposo", "Sumudaerji", "Steve Erceg", "Alex Perez", "Joseph Morales"]
-  },
-  "Men's Bantamweight": {
-    champion: "Petr Yan",
-    contenders: ["Merab Dvalishvili", "Umar Nurmagomedov", "Sean O'Malley", "Cory Sandhagen", "Mario Bautista", "Song Yadong", "David Martinez", "Raoni Barcelos", "Marcus McGhee", "Farid Basharat", "Deiveson Figueiredo", "Aiemann Zahabi", "Charles Jourdain", "Bryce Mitchell", "Montel Jackson"]
-  },
-  "Men's Featherweight": {
-    champion: "Alexander Volkanovski",
-    contenders: ["Movsar Evloev", "Diego Lopes", "Lerone Murphy", "Aljamain Sterling", "Arnold Allen", "Jean Silva", "Pat Sabatini", "Youssef Zalal", "Nathaniel Wood", "Kevin Vallejos", "Melquizael Costa", "Steve Garcia", "Aaron Pico", "Joanderson Brito", "Jose Miguel Delgado"]
-  },
-  "Men's Lightweight": {
-    champion: "Justin Gaethje",
-    contenders: ["Ilia Topuria", "Arman Tsarukyan", "Charles Oliveira", "Max Holloway", "Benoît Saint Denis", "Mateusz Gamrot", "Renato Moicano", "Quillan Salkilld", "Paddy Pimblett", "Mauricio Ruffy", "Dan Hooker", "Tom Nolan", "Rafael Fiziev", "Grant Dawson", "Rafa Garcia"]
-  },
-  "Men's Welterweight": {
-    champion: "Islam Makhachev",
-    contenders: ["Carlos Prates", "Ian Machado Garry", "Michael Morales", "Jack Della Maddalena", "Sean Brady", "Gabriel Bonfim", "Belal Muhammad", "Leon Edwards", "Joaquin Buckley", "Kamaru Usman", "Mike Malott", "Michael Venom Page", "Daniel Rodriguez", "Uroš Medić", "Yaroslav Amosov"]
-  },
-  "Men's Middleweight": {
-    champion: "Sean Strickland",
-    contenders: ["Khamzat Chimaev", "Dricus Du Plessis", "Nassourdine Imavov", "Joe Pyfer", "Brendan Allen", "Caio Borralho", "Anthony Hernandez", "Israel Adesanya", "Gregory Rodrigues", "Ikram Aliskerov", "Jared Cannonier", "Christian Leroy Duncan", "Bo Nickal", "Paulo Costa", "Abus Magomedov"]
-  },
-  "Men's Light Heavyweight": {
-    champion: "Carlos Ulberg",
-    contenders: ["Alex Pereira", "Magomed Ankalaev", "Jiří Procházka", "Paulo Costa", "Jamahal Hill", "Khalil Rountree Jr.", "Dominick Reyes", "Volkan Oezdemir", "Azamat Murzakanov", "Bogdan Guskov", "Dustin Jacoby", "Navajo Stirling", "Alonzo Menifield", "Johnny Walker", "Jan Błachowicz"]
-  },
-  "Men's Heavyweight": {
-    champion: "Tom Aspinall",
-    contenders: ["Ciryl Gane", "Alexander Volkov", "Sergei Pavlovich", "Alex Pereira", "Josh Hokit", "Waldo Cortes-Acosta", "Rizvan Kuniev", "Curtis Blaydes", "Serghei Spivac", "Vitor Petrino", "Valter Walker", "Brando Peričić", "Mario Pinto", "Mick Parkin", "Ryan Spann"]
-  },
-  "Women's Strawweight": {
-    champion: "Mackenzie Dern",
-    contenders: ["Zhang Weili", "Virna Jandiroba", "Tatiana Suarez", "Gillian Robertson", "Yan Xiaonan", "Piera Rodriguez", "Tabatha Ricci", "Denise Gomes", "Mizuki", "Alexia Thainara", "Amanda Lemos", "Loopy Godinez", "Jaqueline Amorim", "Fatima Kline", "Talita Alencar"]
-  },
-  "Women's Flyweight": {
-    champion: "Valentina Shevchenko",
-    contenders: ["Natalia Silva", "Manon Fiorot", "Alexa Grasso", "Erin Blanchfield", "Zhang Weili", "Jasmine Jasudavicius", "Rose Namajunas", "Tracy Cortez", "Maycee Barber", "Wang Cong", "Miranda Maverick", "JJ Aldrich", "Karine Silva", "Eduarda Moura", "Casey O'Neill"]
-  },
-  "Women's Bantamweight": {
-    champion: "Kayla Harrison",
-    contenders: ["Joselyne Edwards", "Norma Dumont", "Luana Santos", "Julianna Peña", "Ailin Perez", "Yana Santos", "Jacqueline Cavalcanti", "Michelle Montague", "Melissa Croden", "Karol Rosa", "Bia Mesquita", "Irene Aldana", "Macy Chiasson", "Daria Zhelezniakova", "Raquel Pennington"]
-  }
-};
-
-// DEV CONFIG: Switch 'http://localhost:5000/api' to your public Render backend URL when ready to host
+// 1. Production API Base Routing Endpoint Setup
 const API_BASE = 'https://championship-rounds-backend.onrender.com/api';
 
 function App() {
-  const [serverStatus, setServerStatus] = useState('Connecting to API...');
-  const [activeTab, setActiveTab] = useState('Fight Card');
-  const [fights, setFights] = useState([]);
+  // --- Core Application State Matrix ---
+  const [activeTab, setActiveTab] = useState('predictions'); // tabs: 'predictions' | 'leaderboard'
+  const [profiles, setProfiles] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [predictions, setPredictions] = useState({});
-  
-  // App Global Sync States
-  const [players, setPlayers] = useState([]);
-  const [currentPlayerId, setCurrentPlayerId] = useState(localStorage.getItem('activeCompetitionPlayerId') || "user_1");
-  const [profilePicks, setProfilePicks] = useState([]);
-  const [hypeTrainSelections, setHypeTrainSelections] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
-  const [newPlayerName, setNewPlayerName] = useState("");
-  const [selectedDivision, setSelectedDivision] = useState("Men's Bantamweight");
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [editNameVal, setEditNameVal] = useState("");
+  // --- Mock Data: Sample Card Structure ---
+  const activeFights = [
+    {
+      id: 'ufc_281_01',
+      division: "Men's Middleweight",
+      fighterA: 'Dricus Du Plessis',
+      fighterB: 'Kamaru Usman',
+      methods: ['KO/TKO', 'Submission', 'Decision'],
+      rounds: [1, 2, 3, 4, 5]
+    },
+    {
+      id: 'ufc_281_02',
+      division: "Men's Bantamweight",
+      fighterA: 'Petr Yan',
+      fighterB: 'Marlon Vera',
+      methods: ['KO/TKO', 'Submission', 'Decision'],
+      rounds: [1, 2, 3, 4, 5]
+    }
+  ];
 
-  const activeUser = players.find(p => p.userId === currentPlayerId) || players[0];
-  const score = activeUser?.score || 0;
-
-  // 1. Initial Load: Check API Status, Load Fights & Group Profiles
+  // --- Lifecycles & Sync Hooks ---
   useEffect(() => {
-    fetch(`${API_BASE}/test`)
-      .then((res) => res.json())
-      .then((data) => setServerStatus(data.message))
-      .catch(() => setServerStatus('Offline (Backend server not running)'));
-
-    fetch(`${API_BASE}/fights`)
-      .then((res) => res.json())
-      .then((data) => { if (data && data.length > 0) setFights(data); })
-      .catch(() => console.error("Fight card could not load from server."));
-
-    fetchProfiles();
+    // Standard initialization: Initialize or pull current player profile framework
+    initUserProfile();
   }, []);
 
-  // 2. Secondary Sync: Fetch User-Specific Info when Current Player Swaps
   useEffect(() => {
-    if (!currentPlayerId) return;
-    localStorage.setItem('activeCompetitionPlayerId', currentPlayerId);
-    fetchUserPredictions(currentPlayerId);
-    fetchUserHypeTrains(currentPlayerId);
-  }, [currentPlayerId]);
+    // Automatically query database updates whenever switching tab focus views
+    if (activeTab === 'leaderboard') {
+      fetchLeaderboards();
+    }
+  }, [activeTab]);
 
-  const fetchProfiles = async () => {
+  // --- Network API Actions ---
+  const initUserProfile = async () => {
     try {
-      const res = await fetch(`${API_BASE}/profiles`);
-      const resData = await res.json();
-      if (resData.success) {
-        setPlayers(resData.data);
-        if (resData.data.length > 0 && !resData.data.some(p => p.userId === currentPlayerId)) {
-          setCurrentPlayerId(resData.data[0].userId);
+      setLoading(true);
+      // Look for an existing profile session or generate a persistent test user
+      const savedUserId = localStorage.getItem('cr_user_id') || `user_${Date.now()}`;
+      localStorage.setItem('cr_user_id', savedUserId);
+
+      // Register or fetch user details from backend registry
+      const response = await fetch(`${API_BASE}/profiles`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        let existingUser = data.data.find(p => p.userId === savedUserId);
+        
+        if (!existingUser) {
+          // If profile is fresh, write the mapping document to MongoDB
+          const createRes = await fetch(`${API_BASE}/profiles`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: savedUserId, username: 'test_fighter' })
+          });
+          const createdData = await createRes.json();
+          existingUser = createdData.data;
         }
+        setCurrentUser(existingUser);
+        fetchUserPredictions(savedUserId);
       }
-    } catch (e) {
-      console.error("Error loading network player records:", e);
+    } catch (err) {
+      console.error("Initialization pipeline breakdown:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchUserPredictions = async (userId) => {
     try {
-      const res = await fetch(`${API_BASE}/predictions/${userId}`);
-      const resData = await res.json();
-      if (resData.success) {
-        setProfilePicks(resData.data);
-      }
-    } catch (e) {
-      console.error("Failed syncing slips:", e);
-    }
-  };
-
-  const fetchUserHypeTrains = async (userId) => {
-    try {
-      const res = await fetch(`${API_BASE}/hypetrain/${userId}`);
-      const resData = await res.json();
-      if (resData.success) {
-        setHypeTrainSelections(resData.data || {});
-      }
-    } catch (e) {
-      console.error("Failed syncing hype trains:", e);
-    }
-  };
-
-  const handleSelection = (fightId, field, value) => {
-    setPredictions((prev) => ({
-      ...prev,
-      [fightId]: { ...prev[fightId], [field]: value }
-    }));
-  };
-
-  const addNewCompetitor = async (e) => {
-    e.preventDefault();
-    if (!newPlayerName.trim()) return;
-    
-    const generatedId = `user_${Date.now()}`;
-
-    try {
-      const res = await fetch(`${API_BASE}/profiles`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: newPlayerName.trim(),
-          userId: generatedId
-        })
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        setPlayers(prev => [...prev, resData.data]);
-        setCurrentPlayerId(resData.data.userId);
-        setNewPlayerName("");
+      const response = await fetch(`${API_BASE}/predictions/${userId}`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        // Map records into localized key-value layout state
+        const predictionMap = {};
+        data.data.forEach(p => {
+          predictionMap[p.matchId] = p;
+        });
+        setPredictions(predictionMap);
       }
     } catch (err) {
-      alert("Error generating your network account registry configuration.");
+      console.error("Failed fetching active prediction slips:", err);
     }
   };
 
-  const handleDeletePlayer = async (userId, e) => {
-    e.stopPropagation(); 
-    if (players.length <= 1) {
-      alert("You must keep at least one profile in the local cluster!");
-      return;
-    }
-    if (!window.confirm("Are you sure you want to permanently delete this profile and all its locked predictions?")) {
-      return;
-    }
+  const fetchLeaderboards = async () => {
     try {
-      const res = await fetch(`${API_BASE}/profile/${userId}`, {
-        method: 'DELETE'
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        const remainingPlayers = players.filter(p => p.userId !== userId);
-        setPlayers(remainingPlayers);
-        if (currentPlayerId === userId) {
-          setCurrentPlayerId(remainingPlayers[0].userId);
-        }
-      }
-    } catch (err) {
-      alert("Failed to delete the database entry.");
-    }
-  };
-
-  const handlePlayerSwap = (id) => {
-    setCurrentPlayerId(id);
-    setPredictions({});
-  };
-
-  const lockInPick = async (fightId) => {
-    const pick = predictions[fightId];
-    const fightDetails = fights.find(f => f.id === fightId);
-
-    if (!pick?.predictedWinner || !pick?.method || !pick?.round) {
-      alert("Please complete all pick criteria!");
-      return;
-    }
-
-    const payload = {
-      matchId: fightId,
-      weightClass: fightDetails?.weightClass || 'MMA Bout',
-      matchup: `${fightDetails?.fighterA?.name} vs. ${fightDetails?.fighterB?.name}`,
-      predictedWinner: pick.predictedWinner,
-      method: pick.method,
-      round: parseInt(pick.round)
-    };
-
-    try {
-      const res = await fetch(`${API_BASE}/predictions/${currentPlayerId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        fetchUserPredictions(currentPlayerId);
-        alert(`🎯 Pick Logged for ${payload.matchup}!`);
-      }
-    } catch (e) {
-      alert("Could not process choice execution securely.");
-    }
-  };
-
-  const handleDeselectPick = async (fightId) => {
-    try {
-      const res = await fetch(`${API_BASE}/predictions/${currentPlayerId}/${fightId}`, {
-        method: 'DELETE'
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        fetchUserPredictions(currentPlayerId);
-      }
-    } catch (e) {
-      console.error("Error wiping item selection execution metadata:", e);
-    }
-  };
-
-  const handleHypeTrainBoarding = async (division, contenderName) => {
-    const isCurrentlyBoarded = hypeTrainSelections[division] === contenderName;
-    const targetChampion = isCurrentlyBoarded ? null : contenderName;
-
-    try {
-      const res = await fetch(`${API_BASE}/hypetrain/${currentPlayerId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ division, predictedChampion: targetChampion })
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        fetchUserHypeTrains(currentPlayerId);
-      }
-    } catch (e) {
-      console.error("Error mapping hype update matrix:", e);
-    }
-  };
-
-  const saveUsernameChange = async () => {
-    if (!editNameVal.trim()) return;
-    try {
-      const res = await fetch(`${API_BASE}/profile/${currentPlayerId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: editNameVal.trim() })
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        setPlayers(prev => prev.map(p => p.userId === currentPlayerId ? { ...p, username: resData.data.username } : p));
-        setIsEditingUsername(false);
-      }
-    } catch (e) {
-      console.error("Username mutation failure.");
-    }
-  };
-
-  const gradeLocalScores = async (payload) => {
-    try {
-      const res = await fetch(`${API_BASE}/sim-results`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const resData = await res.json();
-      if (resData.success) {
-        fetchProfiles(); 
-        fetchUserPredictions(currentPlayerId);
-        fetchUserHypeTrains(currentPlayerId);
-        alert("Scores updated across database clusters successfully.");
-      }
-    } catch (e) {
-      console.error("Failed cascading score changes across cluster nodes:", e);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 font-sans selection:bg-yellow-500 selection:text-black pb-20">
+      setLoading(true);
+      // CACHE BUSTING FIX: Append unique dynamic string token sequence to dodge 304 browser locks
+      const response = await fetch(`${API_BASE}/profiles?t=${Date.now()}`);
+      const data = await response.json();
       
-      {/* Top Navbar */}
-      <nav className="border-b border-gray-800 bg-gray-900 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-black tracking-widest text-yellow-500 uppercase">CHAMPIONSHIP ROUNDS</h1>
-          <span className="hidden sm:inline bg-gray-950 border border-gray-800 text-[10px] text-gray-400 font-mono px-2 py-1 rounded">
-            👤 Profile: <span className="text-yellow-400 font-bold">{activeUser?.username || "Guest"}</span>
-          </span>
+      if (data.success && data.data) {
+        // Sort descending by highest numeric score evaluation values
+        const sorted = data.data.sort((a, b) => b.score - a.score);
+        setProfiles(sorted);
+      }
+    } catch (err) {
+      console.error("Error building leaderboard profile sets:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectPrediction = async (matchId, fighter, method, round) => {
+    if (!currentUser) return;
+    try {
+      const targetPayload = {
+        userId: currentUser.userId,
+        matchId,
+        predictedWinner: fighter,
+        predictedMethod: method,
+        predictedRound: parseInt(round)
+      };
+
+      const response = await fetch(`${API_BASE}/predictions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(targetPayload)
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setPredictions(prev => ({ ...prev, [matchId]: data.data }));
+        flashAlert('Prediction locked and synchronized to cloud cluster!');
+      }
+    } catch (err) {
+      console.error("Failed pushing submission card array:", err);
+    }
+  };
+
+  const handleClearPrediction = async (matchId) => {
+    if (!currentUser || !predictions[matchId]) return;
+    try {
+      const response = await fetch(`${API_BASE}/predictions/${matchId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.userId })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setPredictions(prev => {
+          const updated = { ...prev };
+          delete updated[matchId];
+          return updated;
+        });
+        flashAlert('Prediction cleared from database schema.');
+      }
+    } catch (err) {
+      console.error("Deletion target routing pipeline failed:", err);
+    }
+  };
+
+  // --- Simulated Trigger Request (Trigger Multi-User Scoring Engine) ---
+  const handleTriggerSimulation = async (type, matchId, fighter, method, round) => {
+    try {
+      setLoading(true);
+      const payload = type === 'fight' 
+        ? { type, id: matchId, actualWinner: fighter, actualMethod: method, actualRound: round.toString() }
+        : { type, division: "Men's Bantamweight", actualWinner: fighter };
+
+      const response = await fetch(`${API_BASE}/sim-results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        flashAlert('⚡ Engine execution complete: Match scored and points distributed!');
+        // Instantly force-fetch the fresh scores rather than waiting on component reload cycles
+        await fetchLeaderboards();
+        if (currentUser) await initUserProfile();
+      }
+    } catch (err) {
+      console.error("Simulation sequence engine failure:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const flashAlert = (msg) => {
+    setStatusMessage(msg);
+    setTimeout(() => setStatusMessage(''), 4000);
+  };
+
+  // --- UI Layout Render ---
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans antialiased">
+      {/* Global Header Bar */}
+      <header className="bg-gray-900 border-b border-gray-800 p-4 sticky top-0 z-50 shadow-md">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-black tracking-wider text-red-500 uppercase">🏆 Championship Rounds</h1>
+          {currentUser && (
+            <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700 text-sm">
+              User: <span className="font-mono text-yellow-400 font-bold">{currentUser.username}</span> | 
+              Score: <span className="text-emerald-400 font-bold ml-1">{currentUser.score} PTS</span>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-6 text-sm font-semibold text-gray-400">
-          {['Fight Card', 'Leaderboards', 'My Profile'].map((tab) => (
-            <span key={tab} onClick={() => setActiveTab(tab)} className={`hover:text-white cursor-pointer pb-1 transition ${activeTab === tab ? 'text-yellow-500 border-b-2 border-yellow-500' : ''}`}>{tab}</span>
-          ))}
+      </header>
+
+      {/* Main Container Core */}
+      <main className="max-w-4xl mx-auto p-4 md:p-6 pb-24">
+        {/* Status System Prompts Notification Banner */}
+        {statusMessage && (
+          <div className="mb-4 bg-emerald-950/80 border border-emerald-500 text-emerald-300 px-4 py-3 rounded-xl text-sm font-semibold text-center animate-pulse shadow-lg shadow-emerald-950/20">
+            {statusMessage}
+          </div>
+        )}
+
+        {/* Tab Selection Row Layout Controls */}
+        <div className="flex bg-gray-800 p-1 rounded-xl mb-6 border border-gray-700 max-w-sm">
+          <button 
+            onClick={() => setActiveTab('predictions')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200 ${activeTab === 'predictions' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Fight Cards
+          </button>
+          <button 
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all duration-200 ${activeTab === 'leaderboard' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Leaderboards
+          </button>
         </div>
-      </nav>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 py-10 space-y-14">
-        
-        {activeTab === 'Fight Card' && (
-          <>
-            <section className="text-center max-w-2xl mx-auto space-y-3">
-              <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Lock In Your Picks. Build Your Streak.</h2>
-              <p className="text-gray-400">Logged in as <span className="text-yellow-500 font-bold">{activeUser?.username || "Guest"}</span>. Submit predictions to stack your point tokens.</p>
-            </section>
+        {loading && <div className="text-center text-sm text-gray-400 py-8 animate-bounce">Processing database streams...</div>}
 
-            {/* EVENT MATCHUPS */}
-            <section className="space-y-10">
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold uppercase tracking-wider text-yellow-500 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span> Main Card Predictions
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {fights.filter(f => f.cardType === 'Main').map((fight) => {
-                    const currentPick = predictions[fight.id] || {};
-                    return (
-                      <div key={fight.id} className="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col justify-between hover:border-gray-700 transition">
-                        <div className="flex justify-between items-center mb-6">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest bg-gray-955 px-2.5 py-1 rounded">{fight.stage}</span>
-                          <span className="text-xs font-bold text-yellow-500 bg-yellow-500/10 px-2.5 py-1 rounded">{fight.weightClass}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-center px-2 gap-4">
-                          <button onClick={() => handleSelection(fight.id, 'predictedWinner', fight.fighterA?.name)} className={`w-5/12 p-3 rounded-lg border transition text-center ${currentPick.predictedWinner === fight.fighterA?.name ? 'border-yellow-500 bg-yellow-500/10 shadow-yellow-500/5' : 'border-gray-800 bg-gray-950/50'}`}>
-                            <h4 className="font-bold text-sm">{fight.fighterA?.name}</h4>
-                            <p className="text-xs text-gray-500 mt-1">{fight.fighterA?.record}</p>
-                          </button>
-                          <span className="text-xs italic font-black text-gray-600 bg-gray-955 p-2 rounded-full border border-gray-800 shrink-0">VS</span>
-                          <button onClick={() => handleSelection(fight.id, 'predictedWinner', fight.fighterB?.name)} className={`w-5/12 p-3 rounded-lg border transition text-center ${currentPick.predictedWinner === fight.fighterB?.name ? 'border-yellow-500 bg-yellow-500/10 shadow-yellow-500/5' : 'border-gray-800 bg-gray-950/50'}`}>
-                            <h4 className="font-bold text-sm">{fight.fighterB?.name}</h4>
-                            <p className="text-xs text-gray-500 mt-1">{fight.fighterB?.record}</p>
-                          </button>
-                        </div>
-                        <div className="mt-8 pt-4 border-t border-gray-800/60 space-y-4">
-                          <div className="grid grid-cols-3 gap-2">
-                            {['KO/TKO', 'Submission', 'Decision'].map((method) => (
-                              <button key={method} onClick={() => handleSelection(fight.id, 'method', method)} className={`py-2 text-xs font-bold rounded uppercase transition ${currentPick.method === method ? 'bg-yellow-500 text-black font-black' : 'bg-gray-950 text-gray-400'}`}>{method}</button>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-5 gap-1.5">
-                            {[1, 2, 3, 4, 5].map((round) => (
-                              <button key={round} onClick={() => handleSelection(fight.id, 'round', round)} className={`py-1.5 text-xs font-bold rounded transition ${currentPick.round === round ? 'bg-red-600 text-white font-black' : 'bg-gray-950 text-gray-500'}`}>R{round}</button>
-                            ))}
-                          </div>
-                          {currentPick.predictedWinner && currentPick.method && currentPick.round && (
-                            <button onClick={() => lockInPick(fight.id)} className="w-full bg-yellow-500 text-black font-black py-2 rounded text-xs uppercase tracking-wider transition">Lock In Pick</button>
-                          )}
-                        </div>
+        {/* --- VIEW TAB 1: CARD PREDICTION MATRICES --- */}
+        {!loading && activeTab === 'predictions' && (
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              {activeFights.map(fight => {
+                const existing = predictions[fight.id];
+                return (
+                  <div key={fight.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700 relative overflow-hidden shadow-xl flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">{fight.division}</span>
+                      <div className="flex items-center justify-between my-3">
+                        <span className={`text-base font-bold ${existing?.predictedWinner === fight.fighterA ? 'text-yellow-400' : ''}`}>{fight.fighterA}</span>
+                        <span className="text-xs font-black text-gray-500 px-2">VS</span>
+                        <span className={`text-base font-bold text-right ${existing?.predictedWinner === fight.fighterB ? 'text-yellow-400' : ''}`}>{fight.fighterB}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* PRELIMS */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-gray-600 rounded-full"></span> Preliminary Bouts
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  {fights.filter(f => f.cardType === 'Prelims').map((fight) => {
-                    const currentPick = predictions[fight.id] || {};
-                    return (
-                      <div key={fight.id} className="bg-gray-900/60 border border-gray-800/80 rounded-xl p-6 flex flex-col justify-between hover:border-gray-700 transition">
-                        <div className="flex justify-between items-center mb-4">
-                          <span className="text-xs font-semibold text-gray-500 bg-gray-955/80 px-2 py-0.5 rounded">{fight.stage}</span>
-                          <span className="text-xs font-semibold text-gray-400 bg-gray-800/40 px-2 py-0.5 rounded">{fight.weightClass}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-center gap-2">
-                          <button onClick={() => handleSelection(fight.id, 'predictedWinner', fight.fighterA?.name)} className={`w-5/12 p-2 rounded border text-xs transition ${currentPick.predictedWinner === fight.fighterA?.name ? 'border-yellow-500 text-yellow-500 bg-yellow-500/5' : 'border-gray-800 bg-gray-950/30'}`}>
-                            <span className="font-bold block">{fight.fighterA?.name}</span>
-                            <span className="text-[10px] text-gray-500 block mt-0.5">{fight.fighterA?.record}</span>
-                          </button>
-                          <span className="text-xs font-bold text-gray-700">VS</span>
-                          <button onClick={() => handleSelection(fight.id, 'predictedWinner', fight.fighterB?.name)} className={`w-5/12 p-2 rounded border text-xs transition ${currentPick.predictedWinner === fight.fighterB?.name ? 'border-yellow-500 text-yellow-500 bg-yellow-500/5' : 'border-gray-800 bg-gray-950/30'}`}>
-                            <span className="font-bold block">{fight.fighterB?.name}</span>
-                            <span className="text-[10px] text-gray-500 block mt-0.5">{fight.fighterB?.record}</span>
-                          </button>
-                        </div>
-                        {currentPick.predictedWinner && (
-                          <div className="mt-4 pt-3 border-t border-gray-800/40 grid grid-cols-2 gap-2">
-                            <select onChange={(e) => handleSelection(fight.id, 'method', e.target.value)} className="bg-gray-950 border border-gray-700 text-xs rounded p-1 text-gray-300 focus:outline-none" defaultValue=""><option value="" disabled>Method...</option><option value="KO/TKO">KO/TKO</option><option value="Submission">Submission</option><option value="Decision">Decision</option></select>
-                            <select onChange={(e) => handleSelection(fight.id, 'round', e.target.value)} className="bg-gray-950 border border-gray-700 text-xs rounded p-1 text-gray-300 focus:outline-none" defaultValue=""><option value="" disabled>Round...</option><option value="1">R1</option><option value="2">R2</option><option value="3">R3</option><option value="4">R4</option><option value="5">R5</option></select>
-                            {currentPick.method && currentPick.round && (
-                              <button onClick={() => lockInPick(fight.id)} className="col-span-2 bg-yellow-500 text-black text-[11px] font-black py-1 rounded uppercase tracking-wider mt-1">Lock Prelim Pick</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-
-            {/* HYPE TRAIN CONTENDER MATRIX */}
-            <section className="bg-gradient-to-b from-gray-900 to-gray-950 border border-gray-800 rounded-xl p-6 sm:p-8 space-y-6">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-800 pb-5">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black tracking-widest text-red-500 uppercase bg-red-500/10 px-2.5 py-0.5 rounded">Future Champions Pipeline</span>
-                  <h3 className="text-xl font-bold">The Next Champion "Hype Train"</h3>
-                  <p className="text-xs text-gray-400">Select a division, review the top 15 ranks, and pick who will claim the belt next.</p>
-                </div>
-                <select value={selectedDivision} onChange={(e) => setSelectedDivision(e.target.value)} className="bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-sm font-semibold text-yellow-500 focus:outline-none w-full md:w-auto">
-                  {Object.keys(divisionRankings).map(div => <option key={div} value={div}>{div}</option>)}
-                </select>
-              </div>
-              <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-lg px-4 py-3 flex justify-between items-center text-xs">
-                <div><span className="text-gray-500 block font-bold uppercase tracking-wider text-[9px]">Reigning Titleholder</span><span className="text-sm font-black text-white uppercase tracking-wide">{divisionRankings[selectedDivision]?.champion}</span></div>
-                <span className="text-yellow-500 font-extrabold uppercase tracking-widest bg-yellow-500/10 px-2.5 py-1 rounded text-[10px]">C</span>
-              </div>
-              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-2">
-                {divisionRankings[selectedDivision]?.contenders.map((contender, index) => {
-                  const isOnTrain = hypeTrainSelections[selectedDivision] === contender;
-                  return (
-                    <div key={contender} className="bg-gray-900/40 border border-gray-800 rounded-lg p-3 flex justify-between items-center hover:border-gray-700 transition">
-                      <div className="flex items-center gap-3"><span className="font-mono text-xs font-black text-gray-600 w-5 text-right">#{index + 1}</span><span className="text-xs font-bold text-gray-200">{contender}</span></div>
-                      <button onClick={() => handleHypeTrainBoarding(selectedDivision, contender)} className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded transition ${isOnTrain ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-950 text-gray-400 hover:bg-gray-800'}`}>{isOnTrain ? '🚂 Boarded!' : 'Board Hype Train'}</button>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          </>
-        )}
 
-        {activeTab === 'Leaderboards' && (
-          <Leaderboards 
-            players={players.map(p => ({
-              ...p,
-              id: p.userId, 
-              username: p.username
-            }))}
-            currentPlayerId={currentPlayerId}
-            username={activeUser?.username}
-            score={score}
-            fights={fights}
-            divisionRankings={divisionRankings}
-            gradeLocalScores={gradeLocalScores}
-          />
-        )}
-
-        {activeTab === 'My Profile' && (
-          <div className="max-w-2xl mx-auto space-y-8">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
-              <div>
-                <h4 className="text-sm font-bold uppercase tracking-widest text-yellow-500">Manage Local Group Profiles</h4>
-                <p className="text-xs text-gray-400 mt-0.5">Swap profiles or remove challengers from the local competition circle.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {players.map(p => (
-                  <div key={p.userId} className="flex items-center bg-gray-950 rounded border border-gray-800 overflow-hidden">
-                    <button onClick={() => handlePlayerSwap(p.userId)} className={`text-xs px-3 py-1.5 font-bold transition ${p.userId === currentPlayerId ? 'bg-yellow-500 text-black font-black' : 'text-gray-400 hover:bg-gray-800'}`}>
-                      👤 {p.username || "Anonymous"} ({p.score || 0} pts)
-                    </button>
-                    <button 
-                      onClick={(e) => handleDeletePlayer(p.userId, e)}
-                      className="px-2.5 py-1.5 bg-red-950/20 hover:bg-red-900/40 text-red-500 hover:text-red-400 text-xs transition border-l border-gray-850"
-                      title="Delete Profile"
-                    >
-                      🗑️
-                    </button>
+                    <div className="mt-4 pt-4 border-t border-gray-700/60 space-y-3">
+                      {existing ? (
+                        <div className="bg-gray-900/60 p-3 rounded-xl border border-gray-700/50 text-xs space-y-1">
+                          <p className="text-gray-400">Your Lock: <span className="text-white font-bold">{existing.predictedWinner}</span></p>
+                          <p className="text-gray-400">Method: <span className="text-white font-bold">{existing.predictedMethod} (RD {existing.predictedRound})</span></p>
+                          <button 
+                            onClick={() => handleClearPrediction(fight.id)}
+                            className="w-full mt-2 bg-gray-700 hover:bg-red-900/60 hover:text-red-200 text-gray-300 py-1 rounded-lg text-xs font-bold transition-all duration-150"
+                          >
+                            Change Selection
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            onClick={() => handleSelectPrediction(fight.id, fight.fighterA, fight.methods[0], fight.rounds[1])}
+                            className="bg-gray-700 hover:bg-gray-650 text-white py-2 px-3 rounded-xl text-xs font-bold transition-colors"
+                          >
+                            Pick {fight.fighterA.split(' ').pop()} (KO - R2)
+                          </button>
+                          <button 
+                            onClick={() => handleSelectPrediction(fight.id, fight.fighterB, fight.methods[2], fight.rounds[4])}
+                            className="bg-gray-700 hover:bg-gray-650 text-white py-2 px-3 rounded-xl text-xs font-bold transition-colors"
+                          >
+                            Pick {fight.fighterB.split(' ').pop()} (DEC)
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
-              <form onSubmit={addNewCompetitor} className="flex gap-2 pt-2 border-t border-gray-800/60">
-                <input type="text" placeholder="Add New Challenger Name..." value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)} className="bg-gray-950 border border-gray-700 text-xs text-white px-3 py-1.5 rounded focus:outline-none focus:border-yellow-500 flex-1 max-w-sm" maxLength={20} />
-                <button type="submit" className="bg-gray-800 hover:bg-yellow-500 text-gray-300 hover:text-black font-bold text-xs px-4 py-1.5 rounded transition border border-gray-700 hover:border-yellow-500">+ Add Player</button>
-              </form>
+                );
+              })}
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
-              <div className="border-b border-gray-800 pb-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider block">Championship Profile Card</span>
-                  {isEditingUsername ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <input type="text" value={editNameVal} onChange={(e) => setEditNameVal(e.target.value)} className="bg-gray-950 border border-gray-700 text-lg font-bold text-white px-3 py-1 rounded max-w-[200px]" maxLength={20} />
-                      <button onClick={saveUsernameChange} className="bg-yellow-500 text-black text-xs font-black px-3 py-2 rounded uppercase">Save</button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 mt-1">
-                      <h3 className="text-2xl font-black text-white uppercase tracking-wide">{activeUser?.username || "Guest"}</h3>
-                      <button onClick={() => { setEditNameVal(activeUser?.username || "Guest"); setIsEditingUsername(true); }} className="text-[10px] text-gray-500 hover:text-yellow-500 uppercase font-bold border border-gray-800 px-2 py-0.5 rounded bg-gray-950/40">Edit</button>
-                    </div>
-                  )}
-                  <p className="text-[11px] text-gray-500 font-mono">Mock ID: {activeUser?.userId}</p>
-                </div>
-                <div className="bg-gray-950 border border-gray-800 px-4 py-2 rounded text-center sm:text-right min-w-[140px]">
-                  <span className="text-[9px] uppercase font-bold text-gray-500 block tracking-widest">Running Score</span>
-                  <span className="text-xl font-black text-yellow-500 font-mono">{score} PTS</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-gray-400">Active Hype Trains Bracket Predictions</h4>
-                {Object.keys(hypeTrainSelections).filter(div => hypeTrainSelections[div]).length === 0 ? (
-                  <div className="text-center py-4 text-xs text-gray-600 border border-dashed border-gray-800 rounded-lg">No title forecasts locked. Choose a division on the "Fight Card" tab to invest your picks.</div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {Object.keys(hypeTrainSelections).map(div => {
-                      const candidate = hypeTrainSelections[div];
-                      if (!candidate) return null;
-                      return (
-                        <div key={div} className="bg-gray-950 border border-gray-800 p-3 rounded-lg flex justify-between items-center">
-                          <div>
-                            <span className="text-[9px] font-bold uppercase text-gray-500 block">{div}</span>
-                            <span className="text-xs font-black text-yellow-400 mt-0.5 block">🔮 Next Champ: {candidate}</span>
-                          </div>
-                          <span className="text-sm">🚂</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="text-sm font-bold uppercase tracking-widest text-gray-400">Your Active Slip Predictions ({profilePicks.length})</h4>
-                {profilePicks.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-gray-600 border border-dashed border-gray-800 rounded-lg">No fight predictions locked in yet.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {profilePicks.map((pick, index) => (
-                      <div key={index} className="bg-gray-950 border border-gray-800 p-3 rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                        <div className="flex-1">
-                          <span className="text-[9px] font-bold text-yellow-500 uppercase bg-yellow-500/5 border border-yellow-500/10 px-1.5 py-0.5 rounded mr-2">{pick.weightClass}</span>
-                          <span className="text-xs font-semibold text-gray-300">{pick.matchup}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 self-end sm:self-auto text-xs">
-                          <div>
-                            <span className="text-gray-500">Winner:</span>
-                            <span className="text-white font-bold mr-1">{pick.predictedWinner}</span>
-                            <span className="bg-red-600/10 text-red-400 font-extrabold px-1.5 py-0.5 rounded text-[10px] uppercase border border-red-500/10">{pick.method} • R{pick.round}</span>
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleDeselectPick(pick.matchId)}
-                            className="bg-gray-950 hover:bg-red-950 text-gray-500 hover:text-red-400 border border-gray-800 hover:border-red-900 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition duration-150"
-                          >
-                            ❌ Deselect
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Hidden Built-in Administrative Panel for Scoring Operations */}
+            <div className="mt-8 bg-gray-950 p-5 rounded-2xl border border-gray-800 shadow-inner">
+              <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                ⚙️ Admin Sandbox Grading Simulation Panel
+              </h3>
+              <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                Clicking these execution shortcuts bypasses terminal inputs and fires structured payload scripts directly down your live API node endpoint to parse and evaluate target scores instantly.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleTriggerSimulation('fight', 'ufc_281_01', 'Dricus Du Plessis', 'KO/TKO', 2)}
+                  className="bg-red-950/40 hover:bg-red-900 border border-red-800 text-red-200 text-xs px-3 py-2 rounded-xl font-bold transition-all"
+                >
+                  Grade Match: Du Plessis (KO/TKO - R2)
+                </button>
+                <button
+                  onClick={() => handleTriggerSimulation('hypetrain', null, 'Petr Yan', null, null)}
+                  className="bg-blue-950/40 hover:bg-blue-900 border border-blue-800 text-blue-200 text-xs px-3 py-2 rounded-xl font-bold transition-all"
+                >
+                  Grade Hype Train: Petr Yan
+                </button>
               </div>
             </div>
           </div>
         )}
 
+        {/* --- VIEW TAB 2: LIVE COMPETITION LEADERBOARDS --- */}
+        {!loading && activeTab === 'leaderboard' && (
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden">
+            <div className="p-4 bg-gray-950/40 border-b border-gray-700/60 flex justify-between items-center">
+              <h2 className="text-sm font-bold uppercase text-gray-400 tracking-wider">Global Standing Leaderboard</h2>
+              <button 
+                onClick={fetchLeaderboards} 
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-2.5 py-1 rounded-md font-bold transition-colors"
+              >
+                🔄 Manual Force Refresh
+              </button>
+            </div>
+            {profiles.length === 0 ? (
+              <div className="text-center text-gray-500 py-12 text-sm">No profile data streams registered in MongoDB Atlas.</div>
+            ) : (
+              <div className="divide-y divide-gray-700/50 font-mono">
+                {profiles.map((profile, index) => (
+                  <div 
+                    key={profile._id} 
+                    className={`flex items-center justify-between p-4 transition-colors ${profile.userId === currentUser?.userId ? 'bg-yellow-500/5 hover:bg-yellow-500/10' : 'hover:bg-gray-700/30'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className={`text-sm font-black w-6 text-center ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-600' : 'text-gray-600'}`}>
+                        {index + 1}
+                      </span>
+                      <span className={`text-sm font-medium text-gray-200 ${profile.userId === currentUser?.userId ? 'text-yellow-400 font-bold' : ''}`}>
+                        {profile.username} {profile.userId === currentUser?.userId && ' (You)'}
+                      </span>
+                    </div>
+                    <span className="text-sm font-black text-emerald-400 bg-emerald-950/40 border border-emerald-900/50 px-2 py-0.5 rounded">
+                      {profile.score} PTS
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
-
-      <footer className="border-t border-gray-900 bg-gray-950/80 backdrop-blur fixed bottom-0 left-0 right-0 px-6 py-2 flex justify-between items-center text-xs text-gray-500">
-        <p>© 2026 Championship Rounds App</p>
-        <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${serverStatus.startsWith('Online') ? 'bg-green-500' : 'bg-red-500'}`}></span>
-          <span className="font-mono">{serverStatus}</span>
-        </div>
-      </footer>
-
     </div>
   );
 }
