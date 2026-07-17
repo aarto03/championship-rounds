@@ -49,7 +49,7 @@ const divisionRankings = {
 };
 
 // DEV CONFIG: Switch 'http://localhost:5000/api' to your public Render backend URL when ready to host
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://championship-rounds-backend.onrender.com/api';
 
 function App() {
   const [serverStatus, setServerStatus] = useState('Connecting to API...');
